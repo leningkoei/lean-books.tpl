@@ -1,0 +1,16 @@
+services:
+  lean:
+    build:
+      context: .
+      dockerfile: lean.dockerfile
+    image: ${package}.lean
+    container_name: ${package}.lean
+    network_mode: bridge
+    stdin_open: true
+    volumes:
+      - $PWD:/home/lean/work
+      - $PWD/.vscode-server:/home/lean/.vscode-server
+    environment:
+      SHELL: /bin/bash
+      http_proxy: http://192.168.31.2:10801
+      https_proxy: http://192.168.31.2:10801
