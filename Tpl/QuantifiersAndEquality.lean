@@ -47,6 +47,45 @@ example : a = d :=
   show b = d from (show b = c from hcb.symm).trans $
   show c = d from hcd
 
+variable (α β : Type)
+example (f : α → β) (a : α) : (λ x ↦ f x) a = f a := Eq.refl _
+example (a : α) (b : β) : (a, b).1 = a := Eq.refl _
+example : 2 + 3 = 5 := Eq.refl _
+example : Eq.refl wtf = rfl := rfl
+
+example (α : Type) (a b : α) (p : α → Prop) (h1 : a = b) (h2 : p a) : p b :=
+  -- Eq.subst h1 h2 -- Almost as same as below.
+  h1 ▸ h2
+
+variable (α : Type)
+variable (a b : α)
+variable (α : Type)
+variable (a b : α)
+variable (f g : α → Nat)
+variable (h₁ : a = b)
+variable (h₂ : f = g)
+example : f a = f b := congrArg f h₁
+example : f a = g a := congrFun h₂ a
+example : f a = g b := congr h₂ h₁
+
+#check Nat.add_mul
+example (x y : Nat) : (x + y) * (x + y) = x * x + y * x + x * y + y * y :=
+  have h₁ : (x + y) * (x + y) = (x + y) * x + (x + y) * y :=
+    Nat.mul_add (x + y) x y
+  have h₂ : (x + y) * x = x * x + y * x := Nat.add_mul x y x
+  -- have h₃ : (x + y) * (x + y) = (x * x + y * x) + (x + y) * y := h₂ ▸ h₁
+  have h₄ : (x + y) * y = x * y + y * y := Nat.add_mul x y y
+  -- have h₅ : (x + y) * (x + y) = (x * x + y * x) + (x * y + y * y) := h₄ ▸ h₃
+  have h₅ : (x + y) * (x + y) = (x * x + y * x) + (x * y + y * y) :=
+    h₂ ▸ h₄ ▸ h₁
+  have h₆ : (x + y) * (x + y) = x * x + y * x + (x * y + y * y) := h₅
+  have h₇ : x * x + y * x + x * y + y * y = x * x + y * x + (x * y + y * y) :=
+    Nat.add_assoc (x * x + y * x) (x * y) (y * y)
+  -- have h₈ : x * x + y * x + (x * y + y * y) = x * x + y * x + x * y + y * y :=
+  --   h₇.symm
+  -- h₈ ▸ h₆
+  h₇ ▸ h₆
+
 end Equality
 
 section CalculationalProofs
