@@ -151,7 +151,7 @@ example : a < d := calc
   _ ≤ c     := h2
   _ < c + 1 := Nat.lt_succ_self c
   _ < d     := h3
-  
+
 def divides (x y : Nat) : Prop :=
   ∃ k, k * x = y
 def divides_trans (h₁ : divides x y) (h₂ : divides y z) : divides x z :=
@@ -350,20 +350,114 @@ example (α : Type) (p : α → Prop) : (∀ x : α, p x) ↔ ¬(∃ x : α, ¬p
     show ¬p w from hnp
   Iff.intro hlr hrl
 
-example (α : Type) (p : α → Prop) : (∃ x : α, p x) ↔ ¬(∃ x : α, ¬p x) := sorry
+example (α : Type) (p : α → Prop) : (∃ x : α, p x) ↔ ¬∀ x : α, ¬p x :=
+  have hlr : (∃ x : α, p x) → ¬∀ x : α, ¬p x := λ h : ∃ x : α, p x ↦
+    show (∀ x : α, ¬p x) → False from λ h' : ∀ x : α, ¬p x ↦
+    show False from Exists.elim h $
+    show ∀ w : α, p w → False from λ w : α ↦
+    show p w → False from
+    have h' : (x : α) → ¬p x := h'
+    have hnp : ¬p w := h' w
+    have hnp : p w → False := hnp
+    show p w → False from hnp
+  have hrl : (¬∀ x : α, ¬p x) → ∃ x : α, p x := λ h : (∀ x : α, ¬p x) → False ↦
+    show ∃ x : α, p x from Classical.byContradiction $
+    show (¬∃ x : α, p x) → False from λ h' : ¬∃ x : α, p x ↦
+    show False from h $
+    show ∀ x : α, ¬p x from λ w : α ↦
+    show ¬p w from
+    show p w → False from λ hp : p w ↦
+    show False from h' $
+    show ∃ x : α, p x from Exists.intro w $
+    show p w from hp
+  Iff.intro hlr hrl
 
-example (α : Type) (p : α → Prop) : (¬∃ x : α, p x) ↔ (∀ x : α, ¬p x) := sorry
+example (α : Type) (p : α → Prop) : (¬∃ x : α, p x) ↔ (∀ x : α, ¬p x) :=
+  have hlr : (¬∃ x : α, p x) → ∀ x : α, ¬p x := λ hn : (∃ x : α, p x) → False ↦
+    show ∀ x : α, ¬p x from λ w : α ↦
+    show p w → False from λ hp : p w ↦
+    show False from hn $
+    show ∃ x : α, p x from Exists.intro w $
+    show p w from hp
+  have hrl : (∀ x : α, ¬p x) → ¬∃ x : α, p x := λ h : ∀ x : α, ¬p x ↦
+    show (∃ x : α, p x) → False from λ hp : ∃ x : α, p x ↦
+    show False from Exists.elim hp $
+    show ∀ w : α, p w → False from λ w : α ↦
+    show p w → False from λ hp : p w ↦
+    have hnp : p w → False :=
+      have hnp : (x : α) → p x → False := h
+      show p w → False from hnp w
+    show False from hnp hp
+  Iff.intro hlr hrl
 
-example (α : Type) (p : α → Prop) : (¬∀ x : α, p x) ↔ (∃ x : α, ¬p x) := sorry
+example (α : Type) (p : α → Prop) : (¬∀ x : α, p x) ↔ (∃ x : α, ¬p x) :=
+  have hlr : (¬∀ x : α, p x) → ∃ x : α, ¬p x := λ hnp : (∀ x : α, p x) → False ↦
+    show ∃ x : α, ¬p x from Classical.byContradiction $
+    show (¬∃ x : α, ¬p x) → False from λ hnp' : (∃ x : α, ¬p x) → False ↦
+    show False from hnp $
+    show ∀ x : α, p x from λ w : α ↦
+    show p w from Classical.byContradiction $
+    show ¬p w → False from λ hnp : ¬p w ↦
+    show False from hnp' $
+    show ∃ x : α, ¬p x from Exists.intro w $
+    show ¬p w from hnp
+  have hrl : (∃ x : α, ¬p x) → ¬∀ x : α, p x := λ hr : ∃ x : α, ¬p x ↦
+    show (∀ x : α, p x) → False from λ hp : ∀ x : α, p x ↦
+    show False from Exists.elim hr $
+    show ∀ w : α, ¬p w → False from λ w : α ↦
+    show ¬p w → False from λ hnp : ¬p w ↦
+    show False from hnp $
+    have hp : (x : α) → p x := hp
+    have hp : p w := hp w
+    show p w from hp
+  Iff.intro hlr hrl
 
 example (α : Type) (p : α → Prop) (r : Prop)
-: (∀ x : α, p x → r) ↔ (∃ x : α, p x) → r := sorry
+: (∀ x : α, p x → r) ↔ (∃ x : α, p x) → r :=
+  have hlr : (∀ x : α, p x → r) → (∃ x : α, p x) → r :=
+    λ hl : ∀ x : α, p x → r ↦
+    show (∃ x : α, p x) → r from λ hrl : ∃ x : α, p x ↦
+    show r from Exists.elim hrl $
+    show ∀ w : α, p w → r from λ w : α ↦
+    show p w → r from λ hp : p w ↦
+    show r from
+      have hl : (x : α) → p x → r := hl
+      have hr : r := hl w hp
+    show r from hr
+  have hrl : ((∃ x : α, p x) → r) → ∀ x : α, p x → r :=
+    λ hr : (∃ x : α, p x) → r ↦
+    show ∀ x : α, p x → r from λ w : α ↦
+    show p w → r from λ hp : p w ↦
+    show r from hr $
+    show ∃ x : α, p x from Exists.intro w $
+    show p w from hp
+  Iff.intro hlr hrl
 
 example (α : Type) (p : α → Prop) (r : Prop) (a : α)
-: (∃ x : α, p x → r) ↔ (∀ x : α, p x) → r := sorry
+: (∃ x : α, p x → r) ↔ (∀ x : α, p x) → r :=
+  have hlr : (∃ x : α, p x → r) → (∀ x : α, p x) → r :=
+    λ hl : ∃ x : α, p x → r ↦
+    λ hrl : ∀ x : α, p x ↦
+    show r from Exists.elim hl $
+    show ∀ w : α, (p w → r) → r from λ w : α ↦
+    show (p w → r) → r from λ h : p w → r ↦
+    show r from h $
+    show p w from
+      have hrl : (x : α) → p x := hrl
+      have hp : p w := hrl w
+    show p w from hp
+  have hrl : ((∀ x : α, p x) → r) → ∃ x : α, p x → r :=
+    λ hr : (∀ x : α, p x) → r ↦
+    show ∃ x : α, p x → r from Classical.byContradiction $
+    show (¬∃ x : α, p x → r) → False from
+    sorry
+  Iff.intro hlr hrl
 
 example (α : Type) (p : α → Prop) (r : Prop) (a : α)
-: (∃ x : α, r → p x) ↔ (r → ∃ x : α, p x) := sorry
+: (∃ x : α, r → p x) ↔ (r → ∃ x : α, p x) :=
+  have hlr : (∃ x : α, r → p x) → r → ∃ x : α, p x := sorry
+  have hrl : (r → ∃ x : α, p x) → ∃ x : α, r → p x := sorry
+  Iff.intro hlr hrl
 
 end TheExistentialQuantifier
 
@@ -372,4 +466,3 @@ end MoreOnTheProofLanguage
 
 section Exercises
 end Exercises
-
