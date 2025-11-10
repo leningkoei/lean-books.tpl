@@ -433,6 +433,7 @@ example (α : Type) (p : α → Prop) (r : Prop)
     show p w from hp
   Iff.intro hlr hrl
 
+#check Classical.byCases
 example (α : Type) (p : α → Prop) (r : Prop) (a : α)
 : (∃ x : α, p x → r) ↔ (∀ x : α, p x) → r :=
   have hlr : (∃ x : α, p x → r) → (∀ x : α, p x) → r :=
@@ -448,9 +449,37 @@ example (α : Type) (p : α → Prop) (r : Prop) (a : α)
     show p w from hp
   have hrl : ((∀ x : α, p x) → r) → ∃ x : α, p x → r :=
     λ hr : (∀ x : α, p x) → r ↦
+    -- show ∃ x : α, p x → r from
+    --   have h : (∀ x : α, p x) → ∃ x : α, p x → r := λ h : ∀ x : α, p x ↦
+    --   show ∃ x : α, p x → r from Exists.intro a $
+    --   show p a → r from λ _hp : p a ↦
+    --   show r from hr h
+    --   have hn : (¬∀ x : α, p x) → ∃ x : α, p x → r := λ hn : ¬∀ x : α, p x ↦
+    --     show ∃ x : α, p x → r from Classical.byContradiction $
+    --     show (¬∃ x : α, p x → r) → False from λ hn' : ¬∃ x : α, p x → r ↦
+    --     show False from
+    --       have h : ∀ x : α, p x := λ w : α ↦
+    --         show p w from Classical.byContradiction $
+    --         show ¬p w → False from λ hnp : ¬p w ↦
+    --         show False from hn' $
+    --         show ∃ x : α, p x → r from Exists.intro w $
+    --         show p w → r from λ hp : p w ↦
+    --         show r from absurd hp hnp
+    --     show False from hn h
+    -- show ∃ x : α, p x → r from Classical.byCases h hn
     show ∃ x : α, p x → r from Classical.byContradiction $
-    show (¬∃ x : α, p x → r) → False from
-    sorry
+    show (¬∃ x : α, p x → r) → False from λ hn : ¬∃ x : α, p x → r ↦
+    show False from hn $
+    show ∃ x : α, p x → r from Exists.intro a $
+    show p a → r from λ _hp : p a ↦
+    show r from hr $
+    show ∀ x : α, p x from λ w : α ↦
+    show p w from Classical.byContradiction $
+    show ¬p w → False from λ hnp' : ¬p w ↦
+    show False from hn $
+    show ∃ x : α, p x → r from Exists.intro w $
+    show p w → r from λ hp' : p w ↦
+    show r from absurd hp' hnp'
   Iff.intro hlr hrl
 
 example (α : Type) (p : α → Prop) (r : Prop) (a : α)
