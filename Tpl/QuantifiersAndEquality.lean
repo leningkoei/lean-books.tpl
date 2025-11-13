@@ -165,11 +165,12 @@ example (h₁ : divides x y) (h₂ : y = z) : divides x (2 * z) := calc
   divides x y       := h₁
   y = z             := h₂
   divides z (2 * z) := divides_mul ..
-infix:50 " | " => divides
-example (h₁ : divides x y) (h₂ : y = z) : divides x (2 * z) := calc
-  x | y       := h₁
-  _ = z       := h₂
-  _ | (2 * z) := divides_mul ..
+-- Will conflict with real `∣`
+-- infix:50 " ∣ " => divides
+-- example (h₁ : x ∣ y) (h₂ : y = z) : x ∣ (2 * z) := calc
+--   x ∣ y       := h₁
+--   _ = z       := h₂
+--   _ ∣ (2 * z) := divides_mul ..
 
 example (x y : Nat) : (x + y) * (x + y) = x * x + y * x + x * y + y * y :=
   calc (x + y) * (x + y)
@@ -484,14 +485,261 @@ example (α : Type) (p : α → Prop) (r : Prop) (a : α)
 
 example (α : Type) (p : α → Prop) (r : Prop) (a : α)
 : (∃ x : α, r → p x) ↔ (r → ∃ x : α, p x) :=
-  have hlr : (∃ x : α, r → p x) → r → ∃ x : α, p x := sorry
-  have hrl : (r → ∃ x : α, p x) → ∃ x : α, r → p x := sorry
+  have hlr : (∃ x : α, r → p x) → r → ∃ x : α, p x :=
+    λ hlr : ∃ x : α, r → p x ↦
+    show r → ∃ x : α, p x from λ hr : r ↦
+    show ∃ x : α, p x from Exists.elim hlr $
+    show ∀ x : α, (r → p x) → ∃ x : α, p x from λ w : α ↦
+    show (r → p w) → ∃ x : α, p x from λ h : r → p w ↦
+    show ∃ x : α, p x from Exists.intro w $
+    show p w from h $
+    show r from hr
+  have hrl : (r → ∃ x : α, p x) → ∃ x : α, r → p x :=
+    λ hrl : r → ∃ x : α, p x ↦
+    show ∃ x : α, r → p x from Classical.byContradiction $
+    show (¬∃ x : α, r → p x) → False from λ hn : ¬∃ x : α, r → p x ↦
+    show False from hn $
+    show ∃ x : α, r → p x from Exists.intro a $
+    show r → p a from λ hr : r ↦
+    show p a from Classical.byContradiction $
+    show ¬p a → False from λ _hnp : ¬p a ↦
+    show False from hn $
+    show ∃ x : α, r → p x from Exists.elim (hrl hr) $
+    show ∀ x : α, p x → ∃ x : α, r → p x from λ w : α ↦
+    show p w → ∃ x : α, r → p x from λ hp : p w ↦
+    show ∃ x : α, r → p x from Exists.intro w $
+    show r → p w from λ _hr : r ↦
+    show p w from hp
   Iff.intro hlr hrl
+
+example (α : Type) (a : α) (p : α → Prop) : (∃ x : α, p x) → p a :=
+  λ h : ∃ x : α, p x ↦
+  show p a from Exists.elim h $
+  show ∀ x : α, p x → p a from
+  sorry
 
 end TheExistentialQuantifier
 
 section MoreOnTheProofLanguage
+
+#check Nat.le_trans
+/--
+# Anonymous `have` and `this`
+Eliminating the clutter of lots of labels.
+-/
+example (f : Nat → Nat) (h : ∀ x : Nat, f x ≤ f (x + 1)) : f 0 ≤ f 3 :=
+  have : f 0 ≤ f 1 := h 0
+  have : f 0 ≤ f 2 := Nat.le_trans this $ h 1
+  show f 0 ≤ f 3 from Nat.le_trans this $ h 2
+
+/--
+# Tactic: `assumption`
+When the goal can be inferred, we can ask Lean instead to fill in the proof by
+writing `by assumption`.
+-/
+example (f : Nat → Nat) (h : ∀ x : Nat, f x ≤ f (x + 1)) : f 0 ≤ f 3 :=
+  have : f 0 ≤ f 1 := h 0
+  have : f 0 ≤ f 2 := Nat.le_trans (by assumption) $ h 1
+  show f 0 ≤ f 3 from Nat.le_trans (by assumption) $ h 2
+
+#check Nat.le_antisymm
+/--
+# Notation: `‹p›`
+Type `‹p›` by insert `\f<` `p` `\f>`.
+Definition:
+```lean4
+notation "‹" p "›" => show p by assumption
+```
+-/
+example (f : Nat → Nat) (h : ∀ x : Nat, f x ≤ f (x + 1))
+: f 0 ≥ f 1 → f 1 ≥ f 2 → f 0 = f 2 :=
+  λ _ : f 0 ≥ f 1 ↦
+  λ _ : f 1 ≥ f 2 ↦
+  have : f 0 ≥ f 2 := Nat.le_trans ‹f 1 ≥ f 2› ‹f 0 ≥ f 1›
+  have : f 2 ≥ f 0 := Nat.le_trans (h 0) (h 1)
+  show f 0 = f 2 from Nat.le_antisymm this ‹f 0 ≥ f 2›
+
 end MoreOnTheProofLanguage
 
 section Exercises
+/-!
+1. Prove these equivalences:
+You should also try to understand why the reverse implication is not derivable
+in the last example.
+-/
+section paragraph
+
+variable (α : Type) (p q : α → Prop)
+
+example : (∀ x, p x ∧ q x) ↔ (∀ x, p x) ∧ (∀ x, q x) :=
+  have hlr : (∀ x, p x ∧ q x) → (∀ x, p x) ∧ (∀ x, q x) :=
+    λ h : ∀ x, p x ∧ q x ↦
+    have hp : ∀ x, p x := λ w : α ↦
+      have hpq : p w ∧ q w := h w
+      show p w from hpq.left
+    have hq : ∀ x, q x := λ w : α ↦
+      have hpq : p w ∧ q w := h w
+      show q w from hpq.right
+    show (∀ x, p x) ∧ (∀ x, q x) from And.intro hp hq
+  have hrl : (∀ x, p x) ∧ (∀ x, q x) → ∀ x, p x ∧ q x :=
+    λ h : (∀ x, p x) ∧ (∀ x, q x) ↦
+    show ∀ x, p x ∧ q x from λ w : α ↦
+    show p w ∧ q w from
+      have hp : p w :=
+        show p w from
+          have : ∀ x, p x := h.left
+          have : (x : α) → p x := this
+        show p w from this w
+      have hq : q w :=
+        show q w from
+          have : ∀ x, q x := h.right
+          have : (x : α) → q x := this
+        show q w from this w
+    show p w ∧ q w from And.intro hp hq
+  Iff.intro hlr hrl
+
+example : (∀ x, p x → q x) → (∀ x, p x) → (∀ x, q x) :=
+  λ h₁ : ∀ x, p x → q x ↦
+  λ h₂ : ∀ x, p x ↦
+  show ∀ x, q x from λ w : α ↦
+  show q w from
+    have : (x : α) → p x := h₂
+    have hp : p w := this w
+    have : (x : α) → p x → q x := h₁
+    have hq : q w := this w hp
+  show q w from hq
+
+example : (∀ x, p x) ∨ (∀ x, q x) → ∀ x, p x ∨ q x :=
+  λ h : (∀ x, p x) ∨ (∀ x, q x) ↦
+  show ∀ x, p x ∨ q x from
+    have hleft : (∀ x, p x) → ∀ x, p x ∨ q x :=
+      λ h : ∀ x, p x ↦
+      show ∀ x, p x ∨ q x from λ w : α ↦
+      show p w ∨ q w from
+        have : (x : α) → p x := h
+        have : p w := this w
+      show p w ∨ q w from Or.inl this
+    have hright : (∀ x, q x) → ∀ x, p x ∨ q x :=
+      λ h : ∀ x, q x ↦
+      show ∀ x, p x ∨ q x from λ w : α ↦
+      show p w ∨ q w from
+        have : (x : α) → q x := h
+        have : q w := this w
+      show p w ∨ q w from Or.inr this
+  show ∀ x, p x ∨ q x from Or.elim h hleft hright
+
+example
+: ∃ (α : Type) (p q : α → Prop),
+  ((∀ x, p x ∨ q x) → (∀ x, p x) ∨ (∀ x, q x)) → False :=
+  let hα := Bool
+  let hp := λ x => x = true
+  let hq := λ x => x = false
+  Exists.intro hα $
+  Exists.intro hp $
+  Exists.intro hq $
+  show ((∀ x, hp x ∨ hq x) → (∀ x, hp x) ∨ (∀ x, hq x)) → False
+  from λ h : (∀ x, hp x ∨ hq x) → (∀ x, hp x) ∨ (∀ x, hq x) =>
+  show False from
+    have hn : ((∀ x, hp x) ∨ (∀ x, hq x)) → False :=
+      λ h : (∀ x, hp x) ∨ (∀ x, hq x) =>
+      show False from
+        have h₁ : (∀ x, hp x) → False := λ h : ∀ x, hp x =>
+          have : hp false := h false
+          have : false = true := this
+          have : False := Bool.false_ne_true this
+          show False from this
+        have h₂ : (∀ x, hq x) → False := λ h : ∀ x, hq x =>
+          show False from Bool.false_ne_true $
+          show false = true from Eq.symm $
+          show true = false from
+          show hq true from
+            have : (x : Bool) → hq x := h
+          show hq true from this true
+      show False from Or.elim h h₁ h₂
+    have h : (∀ x, hp x) ∨ (∀ x, hq x) := h $
+      show ∀ x, hp x ∨ hq x from λ
+      | true =>
+        show hp true ∨ hq true from
+        show true = true ∨ true = false from Or.inl $
+        show true = true from Eq.refl true
+      | false =>
+        show hp false ∨ hq false from
+        show false = true ∨ false = false from Or.inr $
+        show false = false from Eq.refl false
+  show False from hn h
+
+end paragraph
+
+/-!
+2. It is often possible  to bring a component of a formula outside a universal
+quantifier, when it does not depend on the quantified variable. Try proving
+these (one direction of the second of these requires classical logic):
+-/
+section paragraph
+
+variable (α : Type) (p q : α → Prop)
+variable (r : Prop)
+
+example : α → ((∀ x : α, r) ↔ r) :=
+  sorry
+
+example : (∀ x, p x ∨ r) ↔ (∀ x, p x) ∨ r :=
+  sorry
+
+example : (∀ x, r → p x) ↔ (r → ∀ x, p x) :=
+  sorry
+
+end paragraph
+
+/-!
+3. Consider the "barber paradox", that is, the claim that in a certain town
+there is a (male) barber that shaves all and only the men who do not shave
+themselves. Prove that this is a contradiction:
+-/
+section paragraph
+
+variable (men : Type) (barber : men)
+variable (shaves : men → men → Prop)
+
+example (h : ∀ x : men, shaves barber x ↔ ¬ shaves x x) : False :=
+  sorry
+
+end paragraph
+/-!
+4. Remember that, without any parameters, an expression of type `Prop` is just
+an assertion. Fill in the definitions of `prime` and `Fermat_prime` below, and
+construct each of the given assertions. For example, you can say that there are
+infinitely many primes by asserting that for every natural number `n`, there is
+a prime number greater than `n`. Goldbach's weak conjecture states that every
+odd number greater than 5 is the sum of three primes. Look up the definition of
+a Fermat prime or any of the other statements, if necessary.
+-/
+section paragraph
+
+def even (n : Nat) : Prop :=
+  sorry
+
+def prime (n : Nat) : Prop :=
+  sorry
+
+def infinitely_many_primes : Prop :=
+  sorry
+
+def Fermat_prime (n : Nat) : Prop :=
+  sorry
+
+def infinitely_many_Fermat_primes : Prop :=
+  sorry
+
+def goldbach_conjecture : Prop :=
+  sorry
+
+def Goldbach's_weak_conjecture : Prop :=
+  sorry
+
+def Fermat's_last_theorem : Prop :=
+  sorry
+
+end paragraph
+
 end Exercises
