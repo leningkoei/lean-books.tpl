@@ -671,7 +671,7 @@ example
 end paragraph
 
 /-!
-2. It is often possible  to bring a component of a formula outside a universal
+2. It is often possible to bring a component of a formula outside a universal
 quantifier, when it does not depend on the quantified variable. Try proving
 these (one direction of the second of these requires classical logic):
 -/
@@ -680,11 +680,38 @@ section paragraph
 variable (α : Type) (p q : α → Prop)
 variable (r : Prop)
 
-example : α → ((∀ x : α, r) ↔ r) :=
-  sorry
+example : α → ((∀ _x : α, r) ↔ r) := λ w : α =>
+  show (∀ _x, r) ↔ r from
+    have hlr : (∀ _x, r) → r := λ h : ∀ _x, r =>
+      show r from
+        have : (x : α) → r := h
+      show r from this w
+    have hrl : r → ∀ _x, r := λ hr : r =>
+      show ∀ _x, r from λ _v : α =>
+      show r from hr
+  show (∀ _x, r) ↔ r from Iff.intro hlr hrl
 
 example : (∀ x, p x ∨ r) ↔ (∀ x, p x) ∨ r :=
-  sorry
+  have hlr : (∀ x, p x ∨ r) → (∀ x, p x) ∨ r := λ h : ∀ x, p x ∨ r =>
+    show (∀ x, p x) ∨ r from Classical.byContradiction $
+    show ((∀ x, p x) ∨ r → False) → False from λ h' : (∀ x, p x) ∨ r → False =>
+    show False from h' $
+    show (∀ x, p x) ∨ r from
+    sorry
+  have hrl : (∀ x, p x) ∨ r → ∀ x, p x ∨ r := λ h : (∀ x, p x) ∨ r =>
+    show ∀ x, p x ∨ r from
+      have h₁ : (∀ x, p x) → ∀ x, p x ∨ r := λ h : ∀ x, p x =>
+        show ∀ x, p x ∨ r from λ w : α =>
+        show p w ∨ r from Or.inl $
+        show p w from
+          have : (x : α) → p x := h
+        show p w from this w
+      have h₂ : r → ∀ x, p x ∨ r := λ hr : r =>
+        show ∀ x, p x ∨ r from λ w : α =>
+        show p w ∨ r from Or.inr $
+        show r from hr
+    show ∀ x, p x ∨ r from Or.elim h h₁ h₂
+  Iff.intro hlr hrl
 
 example : (∀ x, r → p x) ↔ (r → ∀ x, p x) :=
   sorry
