@@ -696,8 +696,19 @@ example : (∀ x, p x ∨ r) ↔ (∀ x, p x) ∨ r :=
     show (∀ x, p x) ∨ r from Classical.byContradiction $
     show ((∀ x, p x) ∨ r → False) → False from λ h' : (∀ x, p x) ∨ r → False =>
     show False from h' $
-    show (∀ x, p x) ∨ r from
-    sorry
+    show (∀ x, p x) ∨ r from Or.inl $
+    show ∀ x, p x from λ w : α =>
+    show p w from
+      have : (x : α) → p x ∨ r := h
+      have : p w ∨ r := this w
+    show p w from
+      have h₁ : p w → p w := λ hp : p w =>
+        show p w from hp
+      have h₂ : r → p w := λ hr : r =>
+        show p w from
+          have h : (∀ x, p x) ∨ r := Or.inr hr
+        show p w from absurd h h'
+    show p w from Or.elim this h₁ h₂
   have hrl : (∀ x, p x) ∨ r → ∀ x, p x ∨ r := λ h : (∀ x, p x) ∨ r =>
     show ∀ x, p x ∨ r from
       have h₁ : (∀ x, p x) → ∀ x, p x ∨ r := λ h : ∀ x, p x =>
@@ -714,7 +725,23 @@ example : (∀ x, p x ∨ r) ↔ (∀ x, p x) ∨ r :=
   Iff.intro hlr hrl
 
 example : (∀ x, r → p x) ↔ (r → ∀ x, p x) :=
-  sorry
+  have hlr : (∀ x, r → p x) → (r → ∀ x, p x) := λ h : ∀ x, r → p x =>
+    show r → ∀ x, p x from λ hr : r =>
+    show ∀ x, p x from λ w : α =>
+    show p w from
+      have : (x : α) → r → p x := h
+      have : r → p w := this w
+      have : p w := this hr
+    show p w from this
+  have hrl : (r → ∀ x, p x) → (∀ x, r → p x) := λ h : r → ∀ x, p x =>
+    show ∀ x, r → p x from λ w : α =>
+    show r → p w from λ hr : r =>
+    show p w from
+      have : ∀ x, p x := h hr
+      have : (x : α) → p x := this
+      have : p w := this w
+    show p w from this
+  Iff.intro hlr hrl
 
 end paragraph
 
@@ -728,8 +755,22 @@ section paragraph
 variable (men : Type) (barber : men)
 variable (shaves : men → men → Prop)
 
-example (h : ∀ x : men, shaves barber x ↔ ¬ shaves x x) : False :=
-  sorry
+#check Iff.elim
+example (h : ∀ x : men, shaves barber x ↔ ¬shaves x x) : False :=
+  have : shaves barber barber ↔ ¬shaves barber barber := h barber
+  show False from Iff.elim (
+    show (shaves barber barber → ¬shaves barber barber) → (¬shaves barber barber
+      → shaves barber barber) → False
+    from
+      λ hlr : shaves barber barber → ¬shaves barber barber =>
+      λ hrl : ¬shaves barber barber → shaves barber barber =>
+    show False from
+      have h₁ : shaves barber barber → False := λ h₁ : shaves barber barber =>
+        show False from hlr h₁ $ h₁
+      have h₂ : ¬shaves barber barber → False := λ h₂ : ¬shaves barber barber =>
+        show False from h₂ $ hrl h₂
+    show False from Classical.byCases h₁ h₂
+  ) this
 
 end paragraph
 /-!
