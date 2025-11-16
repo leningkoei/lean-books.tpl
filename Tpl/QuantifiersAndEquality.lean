@@ -785,28 +785,30 @@ a Fermat prime or any of the other statements, if necessary.
 section paragraph
 
 def even (n : Nat) : Prop :=
-  sorry
+  ∃ k : Nat, n = 2 * k
 
 def prime (n : Nat) : Prop :=
-  sorry
+  n > 1 ∧ ∀ m, m ∣ n → m = 1 ∨ m = n
 
 def infinitely_many_primes : Prop :=
-  sorry
+  ∀ n : Nat, ∃ p : Nat, prime p ∧ p > n
 
 def Fermat_prime (n : Nat) : Prop :=
-  sorry
+  prime n → ∀ a : Nat, ∃ k : Nat, a^n = k * n
 
 def infinitely_many_Fermat_primes : Prop :=
-  sorry
+  ∀ n : Nat, ∃ p : Nat, Fermat_prime p ∧ p > n
 
 def goldbach_conjecture : Prop :=
-  sorry
+  ∀ n : Nat, even n ∧ n > 2 → ∃ x y : Nat, prime x ∧ prime y ∧ n = x + y
 
 def Goldbach's_weak_conjecture : Prop :=
-  sorry
+  ∀ n : Nat, ¬even n ∧ n > 5 →
+  ∃ a b c : Nat, prime a ∧ prime b ∧ prime c ∧ n = a + b + c
 
 def Fermat's_last_theorem : Prop :=
-  sorry
+  ∀ n : Nat, n > 2 →
+  ¬∃ a b c : Nat, a > 0 ∧ b > 0 ∧ c > 0 ∧ a^n + b^n = c^n
 
 end paragraph
 
