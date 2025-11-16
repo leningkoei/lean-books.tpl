@@ -512,11 +512,19 @@ example (α : Type) (p : α → Prop) (r : Prop) (a : α)
     show p w from hp
   Iff.intro hlr hrl
 
+/-!
+It will show that why we must use `Classical.byContraction` before
+`Exists.elim`.
+```
 example (α : Type) (a : α) (p : α → Prop) : (∃ x : α, p x) → p a :=
   λ h : ∃ x : α, p x ↦
   show p a from Exists.elim h $
   show ∀ x : α, p x → p a from
+  -- We can't get a specified `p a` from `p x` whose `x` is belong to the all
+  -- `α`.
   sorry
+```
+-/
 
 end TheExistentialQuantifier
 
