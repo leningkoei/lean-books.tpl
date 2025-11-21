@@ -273,6 +273,62 @@ example (p : Prop) : p ∨ p → p := by
   intro h
   cases h <;> assumption
 
+/--
+### Tactic: `constructor`
+Applies the unique constructor for conjunction.
+-/
+example (p q : Prop) : p ∧ q → q ∧ p := by
+  intro (h : p ∧ q)
+  cases h with
+  | intro hp hq =>
+    constructor
+    · exact hq
+    · exact hp
+
+example (p q r : Prop) : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := by
+  constructor -- apply Iff.intro
+  · show p ∧ (q ∨ r) → (p ∧ q) ∨ (p ∧ r)
+    intro (h : p ∧ (q ∨ r))
+    show (p ∧ q) ∨ (p ∧ r)
+    cases h with
+    | intro hp hqr =>
+      show (p ∧ q) ∨ (p ∧ r)
+      cases hqr with
+      | inl hq =>
+        show (p ∧ q) ∨ (p ∧ r)
+        apply Or.inl
+        show p ∧ q
+        constructor -- And.intro
+        · exact hp
+        · exact hq
+      | inr hr =>
+        show (p ∧ q) ∨ (p ∧ r)
+        apply Or.inr
+        show p ∧ r
+        constructor -- And.intro
+        · exact hp
+        · exact hr
+  · show (p ∧ q) ∨ (p ∧ r) → p ∧ (q ∨ r)
+    intro (h : (p ∧ q) ∨ (p ∧ r))
+    show p ∧ (q ∨ r)
+    cases h with
+    | inl hpq =>
+      show p ∧ (q ∨ r)
+      cases hpq with
+      | intro hp hq =>
+        show p ∧ (q ∨ r)
+        constructor
+        · exact hp
+        · exact Or.inl hq
+    | inr hpr =>
+      show p ∧ (q ∨ r)
+      cases hpr with
+      | intro hp hr =>
+        show p ∧ (q ∨ r)
+        constructor
+        · exact hp
+        · exact Or.inr hr
+
 end MoreTactics
 
 section StructuringTacticProofs
