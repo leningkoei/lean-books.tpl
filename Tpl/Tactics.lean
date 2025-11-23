@@ -329,25 +329,397 @@ example (p q r : Prop) : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := by
         · exact hp
         · exact Or.inr hr
 
+example (p q : Nat → Prop) : (∃ x, p x) → ∃ x, p x ∨ q x := by
+  intro (h : ∃ x, p x)
+  show ∃ x, p x ∨ q x
+  cases h with
+  | intro x px =>
+    show ∃ x, p x ∨ q x
+    -- constructor -- same with below
+    exists x -- same with above
+    show p x ∨ q x
+    apply Or.inl
+    show p x
+    exact px
+
+example (p q : Nat → Prop) : (∃ x, p x ∧ q x) → ∃ x, q x ∧ p x := by
+  intro (h : ∃ x, p x ∧ q x)
+  show ∃ x, q x ∧ p x
+  cases h with
+  | intro w hpq =>
+    show ∃ x, q x ∧ p x
+    cases hpq with
+    | intro hp hq =>
+      show ∃ x, q x ∧ p x
+      exists w
+
+def swap_pair : α × β → β × α := by
+  intro (p : α × β)
+  show β × α
+  cases p
+  show β × α
+  constructor <;> assumption
+#eval swap_pair (1, 2)
+def swap_sum : α ⊕ β → β ⊕ α := by
+  intro (p : α ⊕ β)
+  show β ⊕ α
+  cases p
+  · show β ⊕ α
+    apply Sum.inr
+    show α
+    assumption
+  · show β ⊕ α
+    apply Sum.inl
+    show β
+    assumption
+
+example (P : Nat → Prop) (h₀ : P 0) (h₁ : ∀ n, P (Nat.succ n)) (m : Nat)
+: P m := by
+  cases m with
+  | zero =>
+    show P 0
+    exact h₀
+  | succ m' =>
+    show P (m' + 1)
+    exact h₁ m'
+
+/-!
+### Tactic: `contradiction`
+Search for a contradiction among the hypotheses of the current goal.
+-/
+
+example (p q : Prop) : p ∧ ¬p → q := by
+  intro (h : p ∧ ¬p)
+  show q
+  cases h
+  contradiction
+
+example (p q r : Prop) : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := by
+  constructor
+  · show p ∧ (q ∨ r) → (p ∧ q) ∨ (p ∧ r)
+    -- intro (h : p ∧ (q ∨ r))
+    -- show (p ∧ q) ∨ (p ∧ r)
+    -- match h with
+    intro -- Combine `intro` with `match`.
+    | And.intro (hp : p) (Or.inl (hq : q)) =>
+      apply Or.inl
+      show p ∧ q
+      exact And.intro hp hq
+    | And.intro (hp : p) (Or.inr (hr : r)) =>
+      apply Or.inr
+      show p ∧ r
+      exact And.intro hp hr
+  · show (p ∧ q) ∨ (p ∧ r) → p ∧ (q ∨ r)
+    -- intro (h : (p ∧ q) ∨ (p ∧ r))
+    -- show p ∧ (q ∨ r)
+    -- match h with
+    intro -- Combine `intro` with `match`.
+    | Or.inl (And.intro (hp : p) (hq : q)) =>
+      constructor
+      · exact hp
+      · show q ∨ r
+        exact Or.inl hq
+    | Or.inr (And.intro (hp : p) (hr : r)) =>
+      constructor
+      · exact hp
+      · show q ∨ r
+        exact Or.inr hr
+
 end MoreTactics
 
+/-!
+## Section5.4 Structing Tactic Proofs
+-/
 section StructuringTacticProofs
+
+/--
+### How to mix term-style and tactic-style proofs.
+-/
+example (p q r : Prop) : p ∧ (q ∨ r) → (p ∧ q) ∨ (p ∧ r) := by
+  -- switch to tactic mode
+  intro h
+  exact
+    -- switch to term mode
+    show (p ∧ q) ∨ (p ∧ r) from
+    have hp : p := h.left
+    have hqr : q ∨ r := h.right
+    show (p ∧ q) ∨ (p ∧ r) by
+    -- switch to tactic mode
+    -- cases hqr
+    -- · apply Or.inl; constructor <;> assumption
+    -- · apply Or.inr; constructor <;> assumption
+    -- cases hqr
+    -- case inl hq => apply Or.inl; constructor <;> assumption
+    -- case inr hr => apply Or.inr; constructor <;> assumption
+    cases hqr with
+    | inl hq => apply Or.inl; constructor <;> assumption
+    | inr hr => apply Or.inr; constructor <;> assumption
+
+/--
+### Tactic: `show`
+Declare the type of the goal that is about to be solved, while remaining in
+tactic mode.
+Rewrite a goal to something definitionally equivalent.
+-/
+example (n : Nat) : n + 1 = Nat.succ n := by
+  show n + 1 = Nat.succ n
+  show Nat.succ n = Nat.succ n
+  show n + 1 = n + 1
+  rfl
+
+/--
+### Tactic: `have`
+- Introduces a new subgoal.
+- Label can be omitted, in which case, the default label `this` is used.
+- Type can be ommited.
+-/
+example (p q r : Prop) : p ∧ (q ∨ r) → (p ∧ q) ∨ (p ∧ r) := by
+  intro ⟨hp, hqr⟩
+  cases hqr with
+  | inl hq =>
+    have := And.intro hp hq
+    apply Or.inl; exact this
+  | inr hr =>
+    have := And.intro hp hr
+    apply Or.inr; assumption
+
+/--
+### Tactic: `let`
+- Intruduces local definitions instead of auxiliary facts.
+- Difference with `have`: `let` introduces a local definition in the context, so
+  that the definition of the local declaration can be unfolded in the proof.
+-/
+example : ∃ x, x + 2 = 8 := by
+  let a : Nat := 3 * 2
+  have b : Nat := 3 * 2
+  -- exists b -- Error!
+  exists a
+
 end StructuringTacticProofs
 
+/-!
+## Section5.5 Tactic Combinators
+-/
 section TacticCombinators
+
+/-!
+### Tactic: `first | t₁ | t₂ | ... | tₙ`
+Applies each `tᵢ` until one succeeds, or else fails; 
+-/
+
+example (p q : Prop) (hp : p) : p ∨ q := by
+  first
+  -- | sorry -- WARNING
+  | apply Or.inl; assumption
+  | apply Or.inr; assumption
+
+example (p q r : Prop) (hp : r) : p ∨ q ∨ r := by
+  repeat first
+  | apply Or.inl; assumption
+  | apply Or.inr
+  | assumption
+
+/--
+Please read the comment of this example to help you to understand Exercise2.
+-/
+example (p q r : Prop) (hp : r) : p ∨ q ∨ r := by
+  first
+  | apply Or.inl; assumption
+    -- Cannot remove `; assumption` because we do not want to `apply Or.inl`
+    -- success but want to `apply Or.inl; assumption` failed at this step.
+  | apply Or.inr
+  | assumption
+  show q ∨ r
+  first
+  | apply Or.inl; assumption
+  | apply Or.inr
+  | assumption
+  show r
+  first
+  | apply Or.inl; assumption
+  | apply Or.inr
+  | assumption
+
+/-!
+### Tactic: `try`
+-/
+
+example (p q r : Prop) (hp : p) (hq : q) (hr : r) : p ∧ q ∧ r := by
+  apply And.intro
+  · exact hp
+  · apply And.intro
+    case left => exact hq
+    case right => exact hr
+
+example (p q r : Prop) (hp : p) (hq : q) (hr : r) : p ∧ q ∧ r := by
+  constructor <;> (first | constructor | skip) <;> assumption
+
+example (p q r : Prop) (hp : p) (hq : q) (hr : r) : p ∧ q ∧ r := by
+  constructor <;> (try constructor) <;> assumption
+
+/--
+### Tactic: `all_goals`
+`all_goals t` applies `t` to all open goals.
+-/
+example (p q r : Prop) (hp : p) (hq : q) (hr : r) : p ∧ q ∧ r := by
+  constructor
+  -- 2goals
+  -- case left ⊢ p
+  -- case right ⊢ q ∧ r
+  all_goals (try constructor)
+  -- 3goals
+  -- case left ⊢ p
+  -- case right.left ⊢ q
+  -- case right.right ⊢ r
+  all_goals assumption
+  -- 0goals
+
+/--
+### Tactic: `any_goals`
+`any_goals t` applies `t` to all open goals, and succeeds on at least one goal,
+maybe is like `all_goals (try t)`.
+-/
+example (p q r : Prop) (hp : p) (hq : q) (hr : r) : p ∧ q ∧ r := by
+  constructor
+  any_goals constructor
+  all_goals assumption
+
+example (p q r : Prop) (hp : p) (hq : q) (hr : r)
+: p ∧ ((p ∧ q) ∧ r) ∧ (q ∧ r ∧ p) := by
+  -- repeat (any_goals constructor)
+  -- all_goals assumption
+  repeat (any_goals (first | constructor | assumption))
+
 end TacticCombinators
 
+/-!
+## Section5.6 Rewriting
+-/
 section Rewriting
+
+/-!
+### Tactic: rw
+-/
+
+/-!
+- Rewrite a hypothesis `h : x = y`.
+- Rewrite a lemma `add_comm : ∀ x y, x + y = y + x`, in which the rewrite tactic
+  tries to find suitable instantiations of `x` and `y`.
+- Rewrite a compound term asserting a concrete.
+- Rewrite a general equation.
+-/
+
+example (f : Nat → Nat) (k : Nat) (h₁ : f 0 = 0) (h₂ : k = 0) : f k = 0 := by
+  show f k = 0
+  rw [h₂] -- k = 0
+  show f 0 = 0
+  rw [h₁] -- f 0 = 0
+  -- show 0 = 0, automatically closed by `rw` tactic because the tactic will
+  -- automatically closes any goal of the form `t = t`.
+
+example (x y : Nat) (p : Nat → Prop) (q : Prop)
+  (h : q → x = y) (h' : p y) (hq : q)
+: p x := by
+  show p x
+  rw [h hq] -- h hq : x = y
+  show p y
+  exact h'
+
+/--
+- `rw [t₁, ..., tₙ]` as same as `rw [t₁]; ...; rw [tₙ]`.
+- By default, `rw` uses an equation in the forward direction, matching the
+  left-hand side with an expression, and replacing it with the right-hand side.
+  The notation `←t` can be used to instruct the tactic to use the equality `t`
+  in the reverse direction.
+-/
+example (f : Nat → Nat) (a b : Nat) (h₁ : a = b) (h₂ : f a = 0) : f b = 0 := by
+  rw [←h₁, h₂]
+
+/--
+- `rw` tactic chooses the first match it finds when traversing the term. To use
+  additional arguments can specify the appropriate subterm.
+-/
+example (a b c : Nat) : a + b + c = a + c + b := by
+  show a + b + c = a + c + b
+  rw [Nat.add_assoc]
+  show a + (b + c) = a + c + b
+  rw [Nat.add_comm b]
+  --↑ The left-hand side of this identity can match more than one subterm in the
+  --↑ pattern, without specifying the argument, the tactic would instead rewrite
+  --↑ `a + (b + c)` to `(b + c) + a`.
+  show a + (c + b) = a + c + b
+  rw [←Nat.add_assoc]
+
+/--
+- By default, the `rw` tactic affects only the goal. The notation `rw [t] at h`
+  applies the rewrite for `h` but not the goal.
+-/
+example (f : Nat → Nat) (a : Nat) (h : a + 0 = 0) : f a = f 0 := by
+  show f a = f 0
+  rw [Nat.add_zero] at h
+  show f a = f 0 -- No effect at goal.
+  rw [h]
+
+def Tuple (α : Type) (n : Nat) :=
+  { as : List α // as.length = n }
+example {α : Type} (n : Nat) (h : n = 0) (t : Tuple α n) : Tuple α 0 := by
+  rw [h] at t
+  exact t
+
 end Rewriting
 
+/-!
+## Section5.7 Using the Simplifier
+-/
 section UsingTheSimplifier
+
+/-!
+Tactic: `simp`
+-/
+
+/-!
+- The `simp` tactic uses identities which in Lean's library have been tagged
+  with the `[simp]` attribute to iteratively rewrite subterms in an expression.
+-/
+
+example (x y z : Nat) : (x + 0) * (0 + y * 1 + z * 0) = x * y := by
+  simp
+
+example (x y z : Nat) (p : Nat → Prop) (h : p (x * y))
+: p ((x + 0) * (0 + y * 1 + z * 0)) := by
+  simp
+  show p (x * y)
+  exact h
+
 end UsingTheSimplifier
 
+/-!
+## Section5.8 Split Tactic
+-/
 section SplitTactic
 end SplitTactic
 
+/-!
+## Section5.9 Extensible Tactic
+-/
 section ExtensibleTactics
 end ExtensibleTactics
 
+/-!
+## Section5.10 Exercises
+-/
 section Exercises
+
+example (p q r : Prop) (hp : p)
+: (p ∨ q ∨ r) ∧ (q ∨ p ∨ r) ∧ (q ∨ r ∨ p) := by
+  -- If you don't understand, maybe you will want to read the comment I wrote
+  -- for example repeat first.
+  repeat first
+  | apply And.intro
+    --↑ Do not use `constructor` to instead it, because we only want `And.intro`
+    --↑ successed, but not want `Or.inl` successed.
+  | apply Or.inl; assumption
+  | apply Or.inr; assumption
+  | apply Or.inr
+
 end Exercises
