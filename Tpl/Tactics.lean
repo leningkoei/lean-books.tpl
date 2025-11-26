@@ -691,24 +691,276 @@ example (x y z : Nat) (p : Nat → Prop) (h : p (x * y))
   show p (x * y)
   exact h
 
+example (xs : List Nat)
+: List.reverse (xs ++ [1, 2, 3]) = [3, 2, 1] ++ List.reverse xs := by
+  simp
+
+example {α : Type} (xs ys : List α)
+: List.length (List.reverse (xs ++ ys)) = List.length xs + List.length ys := by
+  simp [Nat.add_comm]
+  -- simp
+  -- apply Nat.add_comm
+
+/--
+- By default, the `simp` tactic affects only the goal. The notation `simp at h`
+  applies the simplifier for `h` but not the goal. Moreover, `simp at *`
+  asterisk to simplify all the hypotheses and the goal.
+-/
+
+example (x y z : Nat)
+  (p : Nat → Prop) (h : p ((x + 0) * (0 + y * 1 + z * 0)))
+: p (x * y) := by
+  simp at h
+  exact h
+
+section
+-- attribute [local simp] Nat.mul_comm Nat.mul_assoc Nat.mul_left_comm
+-- attribute [local simp] Nat.add_assoc Nat.add_comm Nat.add_left_comm
+attribute [local simp] Nat.mul_comm Nat.mul_left_comm -- Let `simp` be able to
+attribute [local simp] Nat.add_comm -- use these theorem inside this section.
+example (w x y z : Nat)
+  (p : Nat → Prop) (h : p (x * y + z * w * x))
+: p (x * w * z + y * x) := by
+  simp at *
+  assumption
+end
+/--
+- `simp [t₁, ..., tₙ]` as same as `simp [t₁]; ...; simp [tₙ]`.
+- By default, `simp` uses an equation in the forward direction, matching the
+  left-hand side with an expression, and replacing it with the right-hand side.
+  The notation `←t` can be used to instruct the tactic to use the equality `t`
+  in the reverse direction.
+-/
+example (w x y z : Nat)
+  (p : Nat → Prop) (h : p (x * y + z * w * x))
+: p (x * w * z + y * x) := by
+  simp [ Nat.mul_comm, Nat.mul_left_comm, Nat.add_comm] at *
+  --↑ Same with last example in paragraph above.
+  assumption
+
+/--
+- Use the `simp [*]` to use all the hypotheses present in the local context when
+  simplifying
+-/
+example (f : Nat → Nat) (k : Nat) (h₁ : f 0 = 0) (h₂ : k = 0) : f k = 0 := by
+  simp [*]
+
+example (p q : Prop) (hp : p) : p ∧ q ↔ q := by
+  simp [*]
+  -- constructor
+  -- · show p ∧ q → q
+  --   intro hpq
+  --   exact hpq.right
+  -- · show q → p ∧ q
+  --   intro hq
+  --   constructor <;> assumption
+example (p q : Prop) (hp : p) : p ∨ q := by
+  simp [*]
+  -- exact Or.inl hp
+
+example (u w x x' y y' z : Nat) (p : Nat → Prop)
+  (h₁ : x + 0 = x') (h₂ : y + 0 = y')
+: x + y + 0 = x' + y' := by
+  -- simp [*] at * NO WAY!!!
+  simp at *
+  simp [*]
+
+/-!
+- `@[simp] theorem t ...` declares theorem `t` to have the [simp] attribute.
+-/
+section
+def mk_symm {α : Type} (xs : List α) := xs ++ xs.reverse
+-- @[simp]
+theorem reverse_mk_symm {α : Type} (xs : List α)
+: (mk_symm xs).reverse = mk_symm xs := by
+  simp [mk_symm]
+attribute [local simp] reverse_mk_symm
+example (xs ys : List Nat)
+: (xs ++ mk_symm ys).reverse = mk_symm ys ++ xs.reverse := by
+  -- simp [reverse_mk_symm]
+  simp
+/--
+- `simp [-t]` is used to block the application of `t`.
+- `simp only [t]` is used to apply the application of `t` only.
+-/
+example (xs ys : List Nat) (p : List Nat → Prop)
+  (h : p (xs ++ mk_symm ys).reverse)
+: p ((mk_symm ys).reverse ++ xs.reverse) := by
+  -- simp [-reverse_mk_symm] at h
+  simp only [List.reverse_append] at h
+  assumption
+end
+
+/-!
+- `simp` tactic has many configuration options. `simp +configuration` to use
+  them.
+  - `simp +contextual`
+  - `simp +arith` or `simp_arith`
+-/
+
+example : if x = 0 then y + x = y else x ≠ 0 := by
+  simp +contextual
+
+example : ∀ (x : Nat) (h : x = 0), y + x = y := by
+  simp +contextual
+
+example : 0 < 1 + x ∧ x + y + 2 ≥ y + 1 := by
+  simp +arith
+
 end UsingTheSimplifier
 
 /-!
 ## Section5.8 Split Tactic
 -/
 section SplitTactic
+
+def f (x y z : Nat) : Nat :=
+  match x, y, z with
+  | 5, _, _ => y
+  | _, 5, _ => y
+  | _, _, 5 => y
+  | _, _, _ => 1
+
+example (x y z : Nat) : x ≠ 5 → y ≠ 5 → z ≠ 5 → z = w → f x y w = 1 := by
+  intro h₁ h₂ h₃ h₄
+  show f x y w = 1
+  simp [f]
+  show (
+    match x, y, w with
+    | 5, _, _ => y
+    | _, 5, _ => y
+    | _, _, 5 => y
+    | _, _, _ => 1
+  ) = 1
+  split
+  · show y = 1;
+    -- h₁ : 5 ≠ 5
+    contradiction
+  · show 5 = 1
+    -- h₂ : 5 ≠ 5
+    contradiction
+  · show y = 1
+    -- h₃ : z ≠ 5, h₄ : z = 5
+    apply absurd h₄ h₃
+  · show 1 = 1
+    apply Eq.refl
+
+def g (xs ys : List Nat) : Nat :=
+  match xs, ys with
+  | [a, b], _ => a + b + 1
+  | _, [b, _c] => b + 1
+  | _, _ => 1
+
+example (xs ys : List Nat) (h : g xs ys = 0) : False := by
+  have h : (
+    match xs, ys with
+    | [a, b], _ => a + b + 1
+    | _, [b, _c] => b + 1
+    | _, _ => 1
+  ) = 0 := by
+    simp [g] at h
+    exact h
+  split at h <;> simp +arith at h
+
 end SplitTactic
 
 /-!
 ## Section5.9 Extensible Tactic
 -/
 section ExtensibleTactics
+
+syntax "triv" : tactic
+
+macro_rules
+| `(tactic| triv) => `(tactic| assumption)
+example (h : p) : p := by
+  assumption
+example (h : p) : p := by
+  triv
+
+macro_rules
+| `(tactic| triv) => `(tactic| rfl)
+example : p = p := by
+  triv
+
 end ExtensibleTactics
 
 /-!
 ## Section5.10 Exercises
 -/
 section Exercises
+
+/-!
+1. Go back to the exercises in Propositions and Proofs and Quantifiers and
+  Equality and redo as many as you can now with tactic proofs, using also `rw`
+  and `simp` as appropriate.
+-/
+section Exercise1
+
+section PropositionsAndProofs
+
+/-!
+Prove the following identities, replacing the `sorry` placeholders with actual
+proofs.
+-/
+section
+
+variable (p q r : Prop)
+
+-- commutativity of `∧` and `∨`
+example : p ∧ q ↔ q ∧ p := by apply And.comm
+example : p ∨ q ↔ q ∨ p := by apply Or.comm
+
+-- associativity of `∧` and `∨`
+example : (p ∧ q) ∧ r ↔ p ∧ (q ∧ r) := by
+  apply Iff.intro
+  · show (p ∧ q) ∧ r → p ∧ (q ∧ r)
+    intro (And.intro (And.intro hp hq) hr)
+    repeat any_goals constructor
+    repeat assumption
+  · show p ∧ (q ∧ r) → (p ∧ q) ∧ r
+    intro (And.intro hp (And.intro hq hr))
+    repeat any_goals constructor
+    repeat assumption
+example : (p ∨ q) ∨ r ↔ p ∨ (q ∨ r) := by
+  apply Iff.intro
+  · show (p ∨ q) ∨ r → p ∨ (q ∨ r)
+    intro
+    | Or.inl (Or.inl hp) => exact Or.inl hp
+    | Or.inl (Or.inr hq) => exact Or.inr ∘ Or.inl $ hq
+    | Or.inr hr => exact Or.inr ∘ Or.inr $ hr
+  · show p ∨ (q ∨ r) → (p ∨ q) ∨ r
+    intro
+    | Or.inl hp => exact Or.inl ∘ Or.inl $ hp
+    | Or.inr (Or.inl hq) => exact Or.inl ∘ Or.inr $ hq
+    | Or.inr (Or.inr hr) => exact Or.inr hr
+
+end
+
+/-!
+Prove the following identities, replacing the `sorry` placeholders with actual
+proofs. These require classical reasoning.
+-/
+section
+end
+
+/-!
+Prove `¬(p ↔ ¬p)` without using classical logic.
+-/
+section
+end
+
+end PropositionsAndProofs
+
+section QuantifiersAndEquality
+end QuantifiersAndEquality
+
+end Exercise1
+
+/-!
+2. Use tactic combinators to obtain a one-line proof of the following:
+-/
+section Exercise2
 
 example (p q r : Prop) (hp : p)
 : (p ∨ q ∨ r) ∧ (q ∨ p ∨ r) ∧ (q ∨ r ∨ p) := by
@@ -722,4 +974,7 @@ example (p q r : Prop) (hp : p)
   | apply Or.inr; assumption
   | apply Or.inr
 
+end Exercise2
+
 end Exercises
+
