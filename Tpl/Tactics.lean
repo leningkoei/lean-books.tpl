@@ -935,6 +935,127 @@ example : (p ∨ q) ∨ r ↔ p ∨ (q ∨ r) := by
     | Or.inr (Or.inl hq) => exact Or.inl ∘ Or.inr $ hq
     | Or.inr (Or.inr hr) => exact Or.inr hr
 
+-- distributivity
+example : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := by
+  apply Iff.intro
+  · show p ∧ (q ∨ r) → (p ∧ q) ∨ (p ∧ r)
+    intro
+    | And.intro hp (Or.inl hq) => exact Or.inl (And.intro hp hq)
+    | And.intro hp (Or.inr hr) => exact Or.inr (And.intro hp hr)
+  · show (p ∧ q) ∨ (p ∧ r) → p ∧ (q ∨ r)
+    intro
+    | Or.inl (And.intro hp hq) => exact And.intro hp $ Or.inl hq
+    | Or.inr (And.intro hp hr) => exact And.intro hp $ Or.inr hr
+example : p ∨ (q ∧ r) ↔ (p ∨ q) ∧ (p ∨ r) := by
+  apply Iff.intro
+  · show p ∨ (q ∧ r) → (p ∨ q) ∧ (p ∨ r)
+    intro
+    | Or.inl hp => exact And.intro (Or.inl hp) (Or.inl hp)
+    | Or.inr (And.intro hq hr) => exact And.intro (Or.inr hq) (Or.inr hr)
+  · show (p ∨ q) ∧ (p ∨ r) → p ∨ (q ∧ r)
+    intro
+    | And.intro (Or.inl hp) (Or.inl hp') => exact Or.inl hp
+    | And.intro (Or.inl hp) (Or.inr hr) => exact Or.inl hp
+    | And.intro (Or.inr hq) (Or.inl hp) => exact Or.inl hp
+    | And.intro (Or.inr hq) (Or.inr hr) => exact Or.inr $ And.intro hq hr
+
+-- other properties
+example : (p → (q → r)) ↔ (p ∧ q → r) := by
+  apply Iff.intro
+  · show (p → (q → r)) → (p ∧ q → r)
+    intro h
+    show p ∧ q → r
+    intro (And.intro hp hq)
+    show r
+    exact h hp hq
+  · show (p ∧ q → r) → (p → (q → r))
+    intro h
+    intro hp
+    intro hq
+    exact h (And.intro hp hq)
+example : ((p ∨ q) → r) ↔ (p → r) ∧ (q → r) := by
+  apply Iff.intro
+  · show ((p ∨ q) → r) → (p → r) ∧ (q → r)
+    intro h
+    apply And.intro
+    · show p → r
+      intro hp
+      exact h (Or.inl hp)
+    · show q → r
+      intro hq
+      exact h (Or.inr hq)
+  · show (p → r) ∧ (q → r) → ((p ∨ q) → r)
+    intro h
+    intro
+    | Or.inl hp => exact h.left hp
+    | Or.inr hq => exact h.right hq
+example : ¬(p ∨ q) ↔ ¬p ∧ ¬q := by
+  apply Iff.intro
+  · show ¬(p ∨ q) → ¬p ∧ ¬q
+    intro h
+    apply And.intro
+    · show ¬p
+      intro hp
+      exact h (Or.inl hp)
+    · show ¬q
+      intro hq
+      exact h (Or.inr hq)
+  · show ¬p ∧ ¬q → ¬(p ∨ q)
+    intro (And.intro hnp hnq)
+    intro
+    | Or.inl hp => exact hnp hp
+    | Or.inr hq => exact hnq hq
+example : ¬p ∨ ¬q → ¬(p ∧ q) := by
+  intro
+  | Or.inl hnp =>
+    intro h
+    exact hnp h.left
+  | Or.inr hnq =>
+    intro h
+    exact hnq h.right
+example : ¬(p ∧ ¬p) := by
+  intro (And.intro hp hnp)
+  exact hnp hp
+example : p ∧ ¬q → ¬(p → q) := by
+  intro (And.intro hp hnq)
+  intro h
+  exact hnq $ h hp
+example : ¬p → (p → q) := by
+  intro hnp
+  intro hp
+  exact absurd hp hnp
+example : (¬p ∨ q) → (p → q) := by
+  intro
+  | Or.inl hnp =>
+    intro hp
+    exact absurd hp hnp
+  | Or.inr hq =>
+    intro hp
+    exact hq
+example : p ∨ False ↔ p := by
+  apply Iff.intro
+  · show p ∨ False → p
+    intro
+    | Or.inl hp => exact hp
+    | Or.inr hf => exact hf.elim
+  · show p → p ∨ False
+    intro hp
+    exact Or.inl hp
+example : p ∧ False ↔ False := by
+  apply Iff.intro
+  · show p ∧ False → False
+    intro h
+    exact h.right.elim
+  · show False → p ∧ False
+    intro hf
+    exact hf.elim
+example : (p → q) → (¬q → ¬p) := by
+  intro h
+  intro hnq
+  intro hp
+  have hq : q := h hp
+  exact hnq hq
+
 end
 
 /-!
