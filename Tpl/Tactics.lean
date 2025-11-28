@@ -1063,6 +1063,33 @@ Prove the following identities, replacing the `sorry` placeholders with actual
 proofs. These require classical reasoning.
 -/
 section
+
+variable (p q r : Prop)
+
+#check Classical.em
+#check Or.elim
+example : (p → q ∨ r) → ((p → q) ∨ (p → r)) := by
+  intro h
+  apply Or.elim (Classical.em (p → q))
+  · show (p → q) → (p → q) ∨ (p → r)
+    intro h'
+    exact Or.inl h'
+  · show ¬(p → q) → (p → q) ∨ (p → r)
+    intro hnp2q
+    have hp2r : p → r := by
+      intro hp
+      apply Or.elim (h hp)
+      · show q → r
+        intro hq
+        have hp2q : p → q := by
+          intro hp
+          exact hq
+        exact absurd hp2q hnp2q
+      · show r → r
+        intro hr
+        exact hr
+    exact Or.inr hp2r
+
 end
 
 /-!
