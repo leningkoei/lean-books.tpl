@@ -37,7 +37,7 @@ example (p q r : Prop) : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := by
   show p ∧ (q ∨ r) → (p ∧ q) ∨ (p ∧ r)
   intro h
   · show (p ∧ q) ∨ (p ∧ r)
-    apply Or.elim h.right
+    apply h.right.elim
     · show q → (p ∧ q) ∨ (p ∧ r)
       intro hq
       show (p ∧ q) ∨ (p ∧ r)
@@ -55,7 +55,7 @@ example (p q r : Prop) : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := by
   · show (p ∧ q) ∨ (p ∧ r) → p ∧ (q ∨ r)
     intro (h : (p ∧ q) ∨ (p ∧ r))
     show p ∧ (q ∨ r)
-    apply Or.elim h
+    apply h.elim
     · show p ∧ q → p ∧ (q ∨ r)
       intro (h : p ∧ q)
       show p ∧ (q ∨ r)
@@ -545,9 +545,9 @@ example (p q r : Prop) (hp : r) : p ∨ q ∨ r := by
 -/
 
 example (p q r : Prop) (hp : p) (hq : q) (hr : r) : p ∧ q ∧ r := by
-  apply And.intro
+  constructor
   · exact hp
-  · apply And.intro
+  · constructor
     case left => exact hq
     case right => exact hr
 
@@ -913,7 +913,7 @@ example : p ∨ q ↔ q ∨ p := by apply Or.comm
 
 -- associativity of `∧` and `∨`
 example : (p ∧ q) ∧ r ↔ p ∧ (q ∧ r) := by
-  apply Iff.intro
+  constructor
   · show (p ∧ q) ∧ r → p ∧ (q ∧ r)
     intro (And.intro (And.intro hp hq) hr)
     repeat any_goals constructor
@@ -923,7 +923,7 @@ example : (p ∧ q) ∧ r ↔ p ∧ (q ∧ r) := by
     repeat any_goals constructor
     repeat assumption
 example : (p ∨ q) ∨ r ↔ p ∨ (q ∨ r) := by
-  apply Iff.intro
+  constructor
   · show (p ∨ q) ∨ r → p ∨ (q ∨ r)
     intro
     | Or.inl (Or.inl hp) => exact Or.inl hp
@@ -937,7 +937,7 @@ example : (p ∨ q) ∨ r ↔ p ∨ (q ∨ r) := by
 
 -- distributivity
 example : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := by
-  apply Iff.intro
+  constructor
   · show p ∧ (q ∨ r) → (p ∧ q) ∨ (p ∧ r)
     intro
     | And.intro hp (Or.inl hq) => exact Or.inl (And.intro hp hq)
@@ -947,7 +947,7 @@ example : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := by
     | Or.inl (And.intro hp hq) => exact And.intro hp $ Or.inl hq
     | Or.inr (And.intro hp hr) => exact And.intro hp $ Or.inr hr
 example : p ∨ (q ∧ r) ↔ (p ∨ q) ∧ (p ∨ r) := by
-  apply Iff.intro
+  constructor
   · show p ∨ (q ∧ r) → (p ∨ q) ∧ (p ∨ r)
     intro
     | Or.inl hp => exact And.intro (Or.inl hp) (Or.inl hp)
@@ -961,7 +961,7 @@ example : p ∨ (q ∧ r) ↔ (p ∨ q) ∧ (p ∨ r) := by
 
 -- other properties
 example : (p → (q → r)) ↔ (p ∧ q → r) := by
-  apply Iff.intro
+  constructor
   · show (p → (q → r)) → (p ∧ q → r)
     intro h
     show p ∧ q → r
@@ -974,10 +974,10 @@ example : (p → (q → r)) ↔ (p ∧ q → r) := by
     intro hq
     exact h (And.intro hp hq)
 example : ((p ∨ q) → r) ↔ (p → r) ∧ (q → r) := by
-  apply Iff.intro
+  constructor
   · show ((p ∨ q) → r) → (p → r) ∧ (q → r)
     intro h
-    apply And.intro
+    constructor
     · show p → r
       intro hp
       exact h (Or.inl hp)
@@ -990,10 +990,10 @@ example : ((p ∨ q) → r) ↔ (p → r) ∧ (q → r) := by
     | Or.inl hp => exact h.left hp
     | Or.inr hq => exact h.right hq
 example : ¬(p ∨ q) ↔ ¬p ∧ ¬q := by
-  apply Iff.intro
+  constructor
   · show ¬(p ∨ q) → ¬p ∧ ¬q
     intro h
-    apply And.intro
+    constructor
     · show ¬p
       intro hp
       exact h (Or.inl hp)
@@ -1033,7 +1033,7 @@ example : (¬p ∨ q) → (p → q) := by
     intro hp
     exact hq
 example : p ∨ False ↔ p := by
-  apply Iff.intro
+  constructor
   · show p ∨ False → p
     intro
     | Or.inl hp => exact hp
@@ -1042,7 +1042,7 @@ example : p ∨ False ↔ p := by
     intro hp
     exact Or.inl hp
 example : p ∧ False ↔ False := by
-  apply Iff.intro
+  constructor
   · show p ∧ False → False
     intro h
     exact h.right.elim
@@ -1070,37 +1070,443 @@ variable (p q r : Prop)
 #check Or.elim
 example : (p → q ∨ r) → ((p → q) ∨ (p → r)) := by
   intro h
-  apply Or.elim (Classical.em (p → q))
-  · show (p → q) → (p → q) ∨ (p → r)
-    intro h'
-    exact Or.inl h'
-  · show ¬(p → q) → (p → q) ∨ (p → r)
-    intro hnp2q
-    have hp2r : p → r := by
+  match Classical.em p with
+  | Or.inl hp =>
+    match h hp with
+    | Or.inl hq =>
+      apply Or.inl
       intro hp
-      apply Or.elim (h hp)
-      · show q → r
-        intro hq
-        have hp2q : p → q := by
-          intro hp
-          exact hq
-        exact absurd hp2q hnp2q
-      · show r → r
-        intro hr
-        exact hr
-    exact Or.inr hp2r
+      exact hq
+    | Or.inr hr =>
+      apply Or.inr
+      intro hp
+      exact hr
+  | Or.inr hnp =>
+    have hp2q : p → q := by
+      intro hp
+      exact absurd hp hnp
+    exact Or.inl hp2q
+example : ¬(p ∧ q) → ¬p ∨ ¬q := by
+  intro h
+  match Classical.em p with
+  | Or.inl hp =>
+    match Classical.em q with
+    | Or.inl hq =>
+      have hpq : p ∧ q := And.intro hp hq
+      exact absurd hpq h
+    | Or.inr hnq => exact Or.inr hnq
+  | Or.inr hnp => exact Or.inl hnp
+example : ¬(p → q) → p ∧ ¬q := by
+  intro hnp2q
+  match Classical.em p with
+  | Or.inl hp =>
+    match Classical.em q with
+    | Or.inl hq =>
+      have hp2q : p → q := by
+        intro hp
+        exact hq
+      exact absurd hp2q hnp2q
+    | Or.inr hnq => exact And.intro hp hnq
+  | Or.inr hnp =>
+    have hp2q : p → q := by
+      intro hp
+      exact absurd hp hnp
+    exact absurd hp2q hnp2q
+example : (p → q) → (¬p ∨ q) := by
+  intro hp2q
+  match Classical.em p with
+  | Or.inl hp =>
+    have hq : q := hp2q hp
+    exact Or.inr hq
+  | Or.inr hnp => exact Or.inl hnp
+example : (¬q → ¬p) → (p → q) := by
+  intro hnq2np
+  intro hp
+  match Classical.em q with
+  | Or.inl hq => exact hq
+  | Or.inr hnq =>
+    have hnp : ¬p := hnq2np hnq
+    exact absurd hp hnp
+example : p ∨ ¬p := by exact Classical.em p
+example : (((p → q) → p) → p) := by
+  intro h
+  match Classical.em p with
+  | Or.inl hp => exact hp
+  | Or.inr hnp =>
+    have hp2q : p → q := by
+      intro hp
+      exact absurd hp hnp
+    exact h hp2q
 
 end
 
+#check Iff.elim
 /-!
 Prove `¬(p ↔ ¬p)` without using classical logic.
 -/
 section
+example {p : Prop} : ¬(p ↔ ¬p) := by
+  intro h
+  apply h.elim
+  intro hp2np hnp2p
+  have hnp : ¬p := by
+    intro hp
+    have hnp : ¬p := hp2np hp
+    exact hnp hp
+  have hp : p := hnp2p hnp
+  exact hnp hp
 end
 
 end PropositionsAndProofs
 
 section QuantifiersAndEquality
+
+/-!
+1. Prove these equivalences:
+  You should also try to understand why the reverse implication is not derivable
+  in the last example.
+-/
+section Exercise1
+variable (α : Type) (p q : α → Prop)
+
+example : (∀ x, p x ∧ q x) ↔ (∀ x, p x) ∧ (∀ x, q x) := by
+  constructor
+  · intro h
+    constructor
+    · intro w
+      exact (h w).left
+    · intro w
+      exact (h w).right
+  · intro h
+    intro w
+    constructor
+    · exact h.left w
+    · exact h.right w
+example : (∀ x, p x → q x) → (∀ x, p x) → (∀ x, q x) := by
+  intro h
+  intro hp
+  intro w
+  have hp : p w := hp w
+  have hq : q w := h w hp
+  exact hq
+example : (∀ x, p x) ∨ (∀ x, q x) → ∀ x, p x ∨ q x := by
+  intro
+  | Or.inl hp =>
+    intro w
+    exact Or.inl $ hp w
+  | Or.inr hq =>
+    intro w
+    exact Or.inr $ hq w
+
+#check Exists.intro
+#check Or.elim
+example
+: ∃ (α : Type) (p q : α → Prop),
+  ¬((∀ x, p x ∨ q x) → (∀ x, p x) ∨ (∀ x, q x)) := by
+  let hα : Type := Bool
+  let hp : hα → Prop := λ x ↦ x = true
+  let hq : hα → Prop := λ x ↦ x = false
+  apply Exists.intro hα
+  apply Exists.intro hp
+  apply Exists.intro hq
+  intro h
+  have : ∀ x, hp x ∨ hq x := by
+    intro
+    | true => exact Or.inl $ Eq.refl true
+    | false => exact Or.inr $ Eq.refl false
+  have h : (∀ x, hp x) ∨ (∀ x, hq x) := h this
+  have hn : ¬((∀ x, hp x) ∨ (∀ x, hq x)) := by
+    intro
+    | Or.inl h => exact Bool.false_ne_true $ h false
+    | Or.inr h => exact Bool.false_ne_true ∘ Eq.symm $ h true
+  exact hn h
+end Exercise1
+
+/-!
+2. It is often possible to bring a component of a formula outside a universal
+  quantifier, when it does not depend on the quantified variable. Try proving
+  these (one direction of the second of these requires classical logic):
+-/
+section Exercise2
+variable (α : Type) (p q : α → Prop)
+variable (r : Prop)
+
+example : α → ((∀ x : α, r) ↔ r) := by
+  intro w
+  constructor
+  · intro hr
+    exact hr w
+  · intro hr
+    intro v
+    exact hr
+example : (∀ x, p x ∨ r) ↔ (∀ x, p x) ∨ r := by
+  constructor
+  · intro h
+    match Classical.em r with
+    | Or.inl hr => exact Or.inr hr
+    | Or.inr hnr =>
+      apply Or.inl
+      intro w
+      match h w with
+      | Or.inl hp => exact hp
+      | Or.inr hr => exact absurd hr hnr
+  · intro h
+    intro w
+    match h with
+    | Or.inl hp => exact Or.inl $ hp w
+    | Or.inr hr => exact Or.inr hr
+example : (∀ x, r → p x) ↔ (r → ∀ x, p x) := by
+  constructor
+  · intro h
+    intro hr
+    intro w
+    exact h w hr
+  · intro h
+    intro w
+    intro hr
+    exact h hr w
+end Exercise2
+
+/-!
+3. Consider the "barber paradox", that is, the claim that in a certain town
+  there is a (male) barber that shaves all and only the men who do not shave
+  themselves. Prove that this is a contradiction:
+-/
+section Exercise3
+variable (men : Type) (barber : men)
+variable (shaves : men → men → Prop)
+
+example (h : ∀ x : men, shaves barber x ↔ ¬shaves x x) : False := by
+  let x : men := barber
+  have : shaves barber barber ↔ ¬shaves barber barber := h x
+  let a : Prop := shaves barber barber
+  let na : Prop := ¬shaves barber barber
+  apply this.elim
+  intro ha2na
+  intro hna2a
+  have hna : na := by
+    intro ha
+    have hna := ha2na ha
+    exact hna ha
+  have ha : a := by
+    exact hna2a hna
+  exact hna ha
+end Exercise3
+
+/-!
+5. Prove as many of the identities listed in the Existential Quantifier section
+  as you can.
+  > What follows are some common identities involving the existential
+  > quantifier. In the exercises below, we encourage you to prove as many as you
+  > can. We also leave it to you to determine which are nonconstructive, and
+  > hence require some form of classical reasoning.
+-/
+section Exercise5
+variable (α : Type) (p q : α → Prop)
+variable (r : Prop)
+
+#check Exists.elim
+example : (∃ _x : α, r) → r := by
+  intro h
+  apply h.elim
+  intro h
+  intro hr
+  exact hr
+#check Exists.intro
+example (a : α) : r → (∃ _x : α, r) := by
+  intro hr
+  apply Exists.intro a
+  exact hr
+example : (∃ x, p x ∧ r) ↔ (∃ x, p x) ∧ r := by
+  constructor
+  case mp =>
+    intro h
+    apply h.elim
+    intro w
+    intro (And.intro hp hr)
+    constructor
+    case left =>
+      show ∃ x, p x
+      apply Exists.intro w
+      exact hp
+    case right =>
+      exact hr
+  case mpr =>
+    intro h
+    apply h.left.elim
+    intro w
+    intro hp
+    apply Exists.intro w
+    exact And.intro hp h.right
+example : (∃ x, p x ∨ q x) ↔ (∃ x, p x) ∨ (∃ x, q x) := by
+  constructor
+  case mp =>
+    intro h
+    apply h.elim
+    intro w
+    intro
+    | Or.inl hp =>
+      apply Or.inl
+      apply Exists.intro w
+      exact hp
+    | Or.inr hq =>
+      apply Or.inr
+      apply Exists.intro w
+      exact hq
+  case mpr =>
+    intro
+    | Or.inl h =>
+      apply h.elim
+      intro w
+      intro hp
+      apply Exists.intro w
+      exact Or.inl hp
+    | Or.inr h =>
+      apply h.elim
+      intro w
+      intro hq
+      apply Exists.intro w
+      exact Or.inr hq
+
+example : (∀ x, p x) ↔ ¬(∃ x, ¬p x) := by
+  constructor
+  · intro h
+    intro h'
+    apply h'.elim
+    intro w
+    intro hnp
+    have hp : p w := h w
+    exact hnp hp
+  · intro h
+    intro w
+    apply Classical.byContradiction
+    intro hnp
+    apply h
+    apply Exists.intro w
+    exact hnp
+example : (∃ x, p x) ↔ ¬(∀ x, ¬p x) := by
+  constructor
+  · intro h
+    intro h'
+    apply h.elim
+    intro w
+    intro hp
+    have hnp : ¬p w := h' w
+    exact hnp hp
+  · intro h
+    apply Classical.byContradiction
+    intro h'
+    apply h
+    intro w
+    intro hp
+    apply h'
+    apply Exists.intro w
+    exact hp
+example : (¬∃ x, p x) ↔ (∀ x, ¬p x) := by
+  constructor
+  · intro h
+    intro w
+    intro hp
+    apply h
+    apply Exists.intro w
+    exact hp
+  · intro h
+    intro h'
+    apply h'.elim
+    intro w
+    intro hp
+    have hnp : ¬p w := h w
+    exact hnp hp
+example : (¬∀ x, p x) ↔ (∃ x, ¬p x) := by
+  constructor
+  · intro h
+    apply Classical.byContradiction
+    intro h'
+    apply h
+    intro w
+    apply Classical.byContradiction
+    intro hnp
+    apply h'
+    apply Exists.intro w
+    exact hnp
+  · intro h
+    intro h'
+    apply h.elim
+    intro w
+    intro hnp
+    apply hnp
+    exact h' w
+
+example : (∀ x, p x → r) ↔ (∃ x, p x) → r := by
+  constructor
+  · intro h
+    intro h'
+    apply h'.elim
+    intro w
+    intro hp
+    exact h w hp
+  · intro h
+    intro w
+    intro hp
+    have : ∃ x, p x := by
+      apply Exists.intro w
+      exact hp
+    exact h this
+example (a : α) : (∃ x, p x → r) ↔ (∀ x, p x) → r := by
+  constructor
+  · intro h
+    intro h'
+    apply h.elim
+    intro w
+    intro hp2r
+    have hp : p w := h' w
+    exact hp2r hp
+  · intro h
+    apply Classical.byContradiction
+    intro h'
+    have : ∀ x, p x := by
+      intro w
+      apply Classical.byContradiction
+      intro hnp
+      apply h'
+      apply Exists.intro w
+      intro hp
+      exact absurd hp hnp
+    have hr : r := h this
+    apply h'
+    apply Exists.intro a
+    intro hp
+    exact hr
+example (a : α) : (∃ x, r → p x) ↔ (r → ∃ x, p x) := by
+  constructor
+  · intro h
+    intro hr
+    apply h.elim
+    intro w
+    intro hr2hp
+    apply Exists.intro w
+    exact hr2hp hr
+  · intro h
+    match Classical.em r with
+    | Or.inl hr =>
+      apply (h hr).elim
+      intro w
+      intro hp
+      apply Exists.intro w
+      intro hr
+      exact hp
+    | Or.inr hnr =>
+      apply Classical.byContradiction
+      intro h'
+      apply hnr
+      have : ∃ x, r → p x := by
+        apply Exists.intro a
+        intro hr
+        exact absurd hr hnr
+      exact absurd this h'
+
+end Exercise5
+
 end QuantifiersAndEquality
 
 end Exercise1
