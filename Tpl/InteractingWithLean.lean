@@ -237,18 +237,139 @@ end Attributes
 ## Section6.6. More on Implicit Arguments
 -/
 section MoreOnImplicitArguments
+
+namespace NoWeekImplicitArguments
+def reflexive {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ a : α, r a a
+
+def symmetric {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ {a b : α}, r a b → r b a
+
+def transitive {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ {a b c : α}, r a b → r b c → r a c
+
+def euclidean {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ {a b c : α}, r a b → r a c → r b c
+
+theorem th1 {α : Type u} {r : α → α → Prop}
+  (reflr : reflexive r) (euclr : euclidean r)
+: symmetric r := by
+  -- show ∀ {a b : α}, r a b → r b a
+  intro ha hb
+  intro h
+  apply euclr h
+  exact reflr ha
+
+theorem th2 {α : Type u} {r : α → α → Prop}
+  (symmr : symmetric r) (euclr : euclidean r)
+: transitive r := by
+  intro ha hb hc
+  intro h₁ h₂
+  apply symmr    -- ⊢ r hc ha
+  apply euclr h₂ -- ⊢ r hb ha
+  apply symmr    -- ⊢ r ha hb
+  exact h₁
+
+theorem th3 {α : Type u} {r : α → α → Prop}
+  (reflr : reflexive r) (euclr : euclidean r)
+: transitive r := th2 (th1 reflr euclr) @euclr
+--↑ symbol`@`: Disable Implicit Arguments
+end NoWeekImplicitArguments
+namespace WeekImplicitArguments
+def reflexive {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ a : α, r a a
+
+def symmetric {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ ⦃a b : α⦄, r a b → r b a
+
+def transitive {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ ⦃a b c : α⦄, r a b → r b c → r a c
+
+def euclidean {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ ⦃a b c : α⦄, r a b → r a c → r b c
+
+theorem th1 {α : Type u} {r : α → α → Prop}
+  (reflr : reflexive r) (euclr : euclidean r)
+: symmetric r := by
+  -- show ∀ {a b : α}, r a b → r b a
+  intro ha hb
+  intro h
+  apply euclr h
+  exact reflr ha
+
+theorem th2 {α : Type u} {r : α → α → Prop}
+  (symmr : symmetric r) (euclr : euclidean r)
+: transitive r := by
+  intro ha hb hc
+  intro h₁ h₂
+  apply symmr    -- ⊢ r hc ha
+  apply euclr h₂ -- ⊢ r hb ha
+  apply symmr    -- ⊢ r ha hb
+  exact h₁
+
+theorem th3 {α : Type u} {r : α → α → Prop}
+  (reflr : reflexive r) (euclr : euclidean r)
+: transitive r := th2 (th1 reflr euclr) euclr
+end WeekImplicitArguments
+namespace NoImplicitArguments
+def reflexive {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ a : α, r a a
+
+def symmetric {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ (a b : α), r a b → r b a
+
+def transitive {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ (a b c : α), r a b → r b c → r a c
+
+def euclidean {α : Type u} (r : α → α → Prop) : Prop :=
+  ∀ (a b c : α), r a b → r a c → r b c
+
+theorem th1 {α : Type u} {r : α → α → Prop}
+  (reflr : reflexive r) (euclr : euclidean r)
+: symmetric r := by
+  -- show ∀ (a b : α), r a b → r b a
+  intro ha hb
+  intro h
+  apply euclr ha hb ha h
+  apply reflr
+
+theorem th2 {α : Type u} {r : α → α → Prop}
+  (symmr : symmetric r) (euclr : euclidean r)
+: transitive r := by
+  intro ha hb hc
+  intro h₁ h₂
+  apply symmr hc ha       -- ⊢ r hc ha
+  apply euclr hb hc ha h₂ -- ⊢ r hb ha
+  apply symmr ha hb       -- ⊢ r ha hb
+  exact h₁
+
+theorem th3 {α : Type u} {r : α → α → Prop}
+  (reflr : reflexive r) (euclr : euclidean r)
+: transitive r := th2 (th1 reflr euclr) euclr
+end NoImplicitArguments
+
 end MoreOnImplicitArguments
 
 /-!
 ## Section6.7. Notation
 -/
 section Notation
+-- Too complex... I will come back here when I have problem with "Notation"
+-- every time.
 end Notation
 
 /-!
 ## Section6.8. Coercions
 -/
 section Coercions
+
+variable (m n : Nat)
+variable (i j : Int)
+
+#check i + ↑m -- Notation `↑`.
+#check i + Int.ofNat m + j -- Method `Int.ofNat`.
+#check i + m + n -- Lean's automatic coercions.
+
 end Coercions
 
 /-!
