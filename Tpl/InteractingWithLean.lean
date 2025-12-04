@@ -376,12 +376,27 @@ end Coercions
 ## Section6.9. Displaying Infomation
 -/
 section DisplayingInfomation
+#check Eq
+#check @Eq
+
+/--
+We cannot print this comment by `#print foo`, so this comment is useless.
+-/
+def foo {α : Type u} (x : α) : α := x
+#check foo
+#check @foo
+#print foo
 end DisplayingInfomation
 
 /-!
 ## Section6.10. Setting Options
 -/
 section SettingOptions
+set_option pp.all true
+#check 2 + 2 = 4
+#reduce (λ x ↦ x + 2) = (λ x ↦ x + 3)
+set_option pp.all false
+#reduce (λ x ↦ x + 2) = (λ x ↦ x + 3)
 end SettingOptions
 
 /-!
@@ -394,23 +409,41 @@ end UsingTheLibrary
 ## Section6.12. Auto Bound Implicit Arguments
 -/
 section AutoBoundImplicitArguments
+set_option autoImplicit false -- Disable auto bound implicit arguments
 end AutoBoundImplicitArguments
 
 /-!
 ## Section6.13. Implicit Lambdas
 -/
 section ImplicitLambdas
+def id1 : {α : Type} → α → α := λ x ↦ x
+def id2 : {α : Type} → α → α := id1
+def id3 : {α : Type} → α → α := @id1
+def id4 : {α : Type} → α → α := λ x ↦ id1 x
+def id5 : {α : Type} → α → α := @λ α (x : α) ↦ id1 x
 end ImplicitLambdas
 
 /-!
 ## Section6.14. Sugar for Simple Functions
 -/
 section SugarForSimpleFunctions
+#eval [1, 2, 3, 4].map (· + 1)
 end SugarForSimpleFunctions
 
 /-!
 ## Section6.15. Named Arguments
 -/
 section NamedArgument
+def sum (xs : List Nat) :=
+  xs.foldl (init := 0) (· + ·)
+#eval sum [1, 2, 3, 4]
+def sum' (xs : List Nat) :=
+  xs.foldl (· + ·) 0
+#eval sum' [1, 2, 3, 4]
+
+example (f : Nat → Nat) (a b c : Nat) : f (a + b + c) = f (a + (b + c)) :=
+  congrArg f (Nat.add_assoc _ _ _)
+example (f : Nat → Nat) (a b c : Nat) : f (a + b + c) = f (a + (b + c)) :=
+  congrArg f (Nat.add_assoc ..)
 end NamedArgument
 
