@@ -367,6 +367,24 @@ end OtherRecursiveDataTypes
 ## Section 7.6. Tactics for Inductive Types
 -/
 section TacticsForInductiveTypes
+
+example (p : Nat → Prop) (hz : p 0) (hs : ∀ n, p (Nat.succ n)) : ∀ n, p n := by
+  intro a
+  cases a
+  · show p 0
+    exact hz
+  · apply hs
+
+example (n : Nat) (h : n ≠ 0) : n.pred.succ = n := by
+  cases n with
+  | zero =>
+    show (0).pred.succ = 0
+    have : 0 = 0 := rfl
+    exact absurd this h
+  | succ m =>
+    show (m + 1).pred.succ = m + 1
+    sorry
+
 end TacticsForInductiveTypes
 
 /-!
